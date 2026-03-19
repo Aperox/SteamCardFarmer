@@ -1,0 +1,20 @@
+{
+  "name": "steam-card-farmer",
+  "version": "1.0.0",
+  "description": "Steam Card Farmer background service",
+  "main": "server.js",
+  "bin": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "open": "^11.0.0",
+    "sqlite3": "^6.0.1",
+    "steam-user": "^5.0.3",
+    "steamcommunity": "^3.45.1"
+  }
+}

@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steam Card Farmer</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="i18n.js"></script>
+<script>
+  // Prevent theme flashing on load by applying immediately
+  try {
+    const saved = localStorage.getItem('scf_settings');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.theme) {
+        document.documentElement.setAttribute('data-theme', parsed.theme);
+      }
+    }
+  } catch(e) {}
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root, [data-theme="ocean"] {
+  --bg: #0f1117; --surface: #1a1d26; --surface2: #21253a;
+  --border: rgba(255,255,255,0.08);
+  --blue: #4FC3F7; --blue-dim: rgba(79,195,247,0.12);
+  --green: #66BB6A; --green-dim: rgba(102,187,106,0.12);
+  --amber: #FFB74D; --amber-dim: rgba(255,183,77,0.12);
+  --red: #EF5350; --red-dim: rgba(239,83,80,0.12);
+  --text: #E8EAF0; --text2: #8B90A8; --text3: #555a70;
+  --r: 10px; --rs: 6px;
+  --accent: #4FC3F7;
+}
+[data-theme="emerald"] {
+  --bg: #0d1210; --surface: #152019; --surface2: #1c2e22;
+  --blue: #4CAF50; --blue-dim: rgba(76,175,80,0.12);
+  --accent: #4CAF50;
+}
+[data-theme="amethyst"] {
+  --bg: #12101a; --surface: #1c1828; --surface2: #271f3a;
+  --blue: #B388FF; --blue-dim: rgba(179,136,255,0.12);
+  --accent: #B388FF;
+}
+[data-theme="sunset"] {
+  --bg: #151010; --surface: #221a18; --surface2: #2e2220;
+  --blue: #FF8A65; --blue-dim: rgba(255,138,101,0.12);
+  --accent: #FF8A65;
+}
+[data-theme="midnight"] {
+  --bg: #08090c; --surface: #101218; --surface2: #181c28;
+  --blue: #78909C; --blue-dim: rgba(120,144,156,0.12);
+  --accent: #78909C;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; height: 100vh; overflow: hidden; }
+.material-symbols-rounded { font-size: 1.25em; vertical-align: middle; margin-right: 4px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24; }
+.app { max-width: 960px; margin: 0 auto; padding: 24px 16px 16px 16px; display: flex; flex-direction: column; height: 100vh; }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; min-height: 56px; }
+.logo { font-size: 20px; font-weight: 600; display: flex; align-items: center; }
+.logo img { max-height: 56px; max-width: 250px; object-fit: contain; }
+.logo span { color: var(--blue); }
+
+/* Theme picker dots */
+.theme-dot {
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.theme-dot span { width: 22px; height: 22px; border-radius: 50%; display: block; }
+.theme-dot:hover { border-color: rgba(255,255,255,0.3); transform: scale(1.1); }
+.theme-dot.active { border-color: var(--text); box-shadow: 0 0 8px rgba(255,255,255,0.15); }
+.top-right { display: flex; align-items: center; gap: 8px; }
+.badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+.badge-off    { background: rgba(255,255,255,0.05); color: var(--text2); }
+.badge-on     { background: var(--green-dim); color: var(--green); }
+.badge-farm   { background: var(--blue-dim); color: var(--blue); }
+.badge-wait   { background: var(--amber-dim); color: var(--amber); animation: blink 1.2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+.card-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+input[type=text], input[type=password] {
+  width: 100%; padding: 9px 12px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--rs);
+  color: var(--text); font-size: 14px; outline: none; transition: border-color .15s;
+}
+input:focus { border-color: var(--blue); }
+input::placeholder { color: var(--text3); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--rs); font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s, transform .1s; }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-blue   { background: var(--blue); color: #04253a; }
+.btn-green  { background: var(--green); color: #0a2b0c; }
+.btn-red    { background: var(--red); color: #fff; }
+.btn-ghost  { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { border-color: rgba(255,255,255,.2); }
+.btn-sm { padding: 8px 16px; font-size: 14px; font-weight: 600; }
+.btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(239,83,80,0.3); }
+
+/* Profile Dropdown */
+.profile-menu { position: relative; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 8px; border-radius: var(--rs); transition: background .2s; }
+.profile-menu:hover { background: rgba(255,255,255,0.05); }
+.profile-avatar { width: 32px; height: 32px; border-radius: 50%; background: #111; object-fit: cover; }
+.profile-avatar.skeleton { background: var(--surface2); position: relative; overflow: hidden; }
+.profile-avatar.skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+.profile-name { font-weight: 600; font-size: 13px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-dropdown { position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 8px; min-width: 160px; display: none; flex-direction: column; gap: 4px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+.profile-dropdown.show { display: flex; }
+.dropdown-item { padding: 8px 12px; border-radius: var(--rs); color: var(--text); font-size: 13px; cursor: pointer; transition: background .2s; display: flex; align-items: center; gap: 8px; }
+.dropdown-item:hover { background: var(--surface2); }
+.dropdown-item.danger { color: var(--red); }
+.dropdown-item.danger:hover { background: rgba(239,83,80,0.1); }
+
+/* Guard banner */
+.guard-banner { display: none; background: var(--amber-dim); border: 1px solid rgba(255,183,77,0.25); border-radius: var(--r); padding: 18px 20px; margin-bottom: 16px; }
+.guard-banner.show { display: block; }
+.guard-title { font-size: 14px; font-weight: 600; color: var(--amber); margin-bottom: 6px; }
+.guard-desc  { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 14px; }
+.code-row { display: flex; gap: 8px; align-items: center; }
+.code-input { max-width: 150px; letter-spacing: 4px; font-size: 18px; text-align: center; font-weight: 600; }
+.error-msg { margin-top: 10px; font-size: 12px; color: var(--red); }
+input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+/* Stats */
+.stats-row { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; }
+.stat { display: flex; flex-direction: column; min-width: 80px; text-align: right; }
+.stat-val { font-size: 26px; font-weight: 700; line-height: 1.1; margin-bottom: 2px; font-variant-numeric: tabular-nums; }
+.stat-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+
+/* Now playing */
+.now-playing { display: none; align-items: center; gap: 12px; background: var(--blue-dim); border: 1px solid rgba(79,195,247,0.2); border-radius: var(--r); padding: 12px 16px; margin-bottom: 16px; }
+.now-playing.show { display: flex; }
+.pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+/* Games Grid */
+.games-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
+
+.game-card {
+  position: relative;
+  background: var(--surface2);
+  border: 2px solid transparent;
+  border-radius: var(--rs);
+  overflow: hidden;
+  transition: all .2s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 140px;
+}
+.game-card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+.game-card.active { border-color: var(--green); box-shadow: 0 0 10px rgba(102,187,106,0.3); }
+.game-card.empty-drops { opacity: 0.5; filter: grayscale(80%); }
+.game-card.empty-drops:hover { opacity: 0.8; filter: grayscale(40%); }
+
+.game-img-wrap { position: relative; }
+.game-img { width: 100%; height: 69px; object-fit: cover; background: #111; display: block; }
+.game-info { padding: 8px 8px 8px 8px; flex: 1; display: flex; flex-direction: column; }
+.game-name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; padding-right: 20px; }
+.game-drops { font-size: 11px; color: var(--amber); font-weight: 600; }
+.game-drops.done { color: var(--green); }
+
+.game-check { position: absolute; top: 6px; right: 6px; width: 16px; height: 16px; accent-color: var(--blue); z-index: 2; cursor: pointer; }
+.empty { text-align: center; padding: 28px; color: var(--text2); font-size: 13px; grid-column: 1 / -1; }
+
+.market-btn { position: absolute; bottom: 4px; right: 4px; color: #fff; background: rgba(0,0,0,0.55); padding: 4px; border-radius: var(--rs); transition: all 0.2s; display: flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer; z-index: 3; backdrop-filter: blur(4px); }
+.market-btn:hover { color: var(--blue); background: rgba(0,0,0,0.75); transform: scale(1.1); }
+
+/* Progress bar on game cards */
+.game-progress { width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: auto; overflow: hidden; }
+.game-progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--blue), #81D4FA); transition: width 0.5s ease; }
+.game-card.empty-drops .game-progress-fill { background: var(--green); }
+
+/* Drag and drop */
+.game-card.dragging { opacity: 0.4; transform: scale(0.95); }
+.game-card.drag-over { border-color: var(--blue); box-shadow: 0 0 12px rgba(79,195,247,0.3); }
+
+/* Toast notifications */
+.toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast {
+  padding: 12px 18px; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  color: var(--text); font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 10px;
+  animation: toastIn 0.4s ease, toastOut 0.4s ease 3.6s forwards;
+  pointer-events: auto; max-width: 340px;
+}
+.toast-icon { font-size: 20px; flex-shrink: 0; }
+.toast.success { border-left: 3px solid var(--green); }
+.toast.success .toast-icon { color: var(--green); }
+.toast.info { border-left: 3px solid var(--blue); }
+.toast.info .toast-icon { color: var(--blue); }
+@keyframes toastIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+/* Tabs */
+.tabs { display: flex; border-bottom: 1px solid var(--border); margin: -16px -16px 16px; padding: 0 16px; }
+.tab { padding: 12px 16px; font-size: 16px; font-weight: 500; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; transition: .2s; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+.tab-pane { display: none; flex-direction: column; overflow: hidden; }
+.tab-pane.active { display: flex; flex: 1; }
+.ctrls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+.flex1 { flex: 1; }
+.hint { font-size: 12px; color: var(--text3); }
+
+/* Log */
+.log-box { background: var(--bg); border: 1px solid var(--border); border-radius: var(--rs); padding: 12px; flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 14px; }
+.log-line { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.025); line-height: 1.5; }
+.log-t { color: var(--text3); flex-shrink: 0; }
+.log-m { color: var(--text2); }
+.log-m.success { color: var(--green); }
+.log-m.error   { color: var(--red); }
+.log-m.warning { color: var(--amber); }
+.log-m.info    { color: var(--text); }
+
+#mainSection { display: none; flex-direction: column; flex: 1; min-height: 0; box-sizing: border-box; }
+.modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+.modal-backdrop.show { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); width: 400px; max-width: 90vw; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: var(--text); display: flex; justify-content: space-between; align-items: center; }
+.modal-close { cursor: pointer; color: var(--text2); font-size: 18px; border: none; background: none; }
+.modal-close:hover { color: var(--red); }
+.setting-row { margin-bottom: 16px; }
+.setting-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; display: block; }
+.setting-desc { font-size: 11px; color: var(--text3); margin-bottom: 8px; line-height: 1.4; }
+
+select { 
+  width: 100%; padding: 9px 12px; padding-right: 36px;
+  background: var(--surface2) url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B90A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 12px center;
+  background-size: 16px; border: 1px solid var(--border); border-radius: var(--rs);
+  color: var(--text); font-size: 14px; outline: none; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+}
+select:focus { border-color: var(--blue); }
+select option { background: var(--surface); color: var(--text); }
+
+input[type=number] {
+  width: 100%; padding: 9px 12px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--rs);
+  color: var(--text); font-size: 14px; outline: none; transition: border-color .15s;
+}
+input[type=number]:focus { border-color: var(--blue); }
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { appearance: none; -webkit-appearance: none; margin: 0; }
+input[type=number] { appearance: textfield; -moz-appearance: textfield; }
+
+/* Switch Toggle */
+.switch { position: relative; display: inline-flex; flex-shrink: 0; width: 44px; height: 24px; cursor: pointer; }
+.switch input { opacity: 0; width: 0; height: 0; margin: 0; }
+.slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--surface2); transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 24px; border: 1px solid var(--border); pointer-events: none; }
+.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text2); transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: var(--blue); border-color: var(--blue); }
+input:checked + .slider:before { transform: translateX(20px); background-color: #04253a; }
+
+.toggle-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 16px; }
+.toggle-row > div { flex: 1; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: var(--surface2);
+  border-radius: var(--rs);
+  position: relative; overflow: hidden;
+}
+.skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.skeleton-text { display: inline-block; }
+.skeleton-card {
+  height: 100px; border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="logo">
+      <img src="logo.png" onerror="this.onerror=null; this.outerHTML='<span>Steam</span> Card Farmer'" alt="Steam Card Farmer">
+    </div>
+    <div class="top-right">
+      <span id="badge" class="badge badge-off">● Bağlı değil</span>
+      <div class="profile-menu" id="profileArea" style="display: none;">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="profile-avatar skeleton" id="navAvatar">
+        <div style="display: flex; flex-direction: column; justify-content: center; gap: 2px;">
+          <span class="profile-name" id="navName"><span class="skeleton skeleton-text" style="width:70px;height:13px;border-radius:4px"></span></span>
+          <span id="navStatus" style="font-size:11px; font-weight:500; color:var(--text3); display:none;">Yükleniyor...</span>
+        </div>
+        <div class="profile-dropdown">
+          <div class="dropdown-item" onclick="openHelp()"><span class="material-symbols-rounded">help</span> <span data-i18n="menu_help">Başlangıç Rehberi</span></div>
+          <div class="dropdown-item" onclick="openSettings()"><span class="material-symbols-rounded">settings</span> <span data-i18n="menu_settings">Ayarlar</span></div>
+          <div class="dropdown-item" onclick="doLogout()"><span class="material-symbols-rounded">logout</span> <span data-i18n="menu_logout">Çıkış Yap</span></div>
+          <div class="dropdown-item danger" onclick="quitApp()"><span class="material-symbols-rounded">power_settings_new</span> <span data-i18n="menu_quit">Programı Kapat</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GİRİŞ ────────────────────────────────────── -->
+  <div id="loginSection">
+    <div class="card">
+      <div class="card-title" data-i18n="login_title">Steam Girişi</div>
+      <div class="row2">
+        <div>
+          <label data-i18n="username_label">Kullanıcı Adı</label>
+          <input type="text" id="username" placeholder="steam kullanıcı adı" autocomplete="username">
+        </div>
+        <div>
+          <label data-i18n="password_label">Şifre</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:12px;">
+        <button class="btn btn-blue" id="loginBtn" onclick="doLogin()"><span class="material-symbols-rounded">login</span> <span data-i18n="btn_login">Giriş Yap</span></button>
+        <span id="loginStatus" style="font-size:12px;color:var(--text2);"></span>
+      </div>
+    </div>
+
+    <!-- Steam Guard kod banner'ı -->
+    <div class="guard-banner" id="guardBanner">
+      <div class="guard-title" id="guardTitle" data-i18n="guard_title">Steam Guard Kodu</div>
+      <div class="guard-desc" id="guardDesc" data-i18n="guard_desc">Kodu girin.</div>
+      <div class="code-row">
+        <input type="text" class="code-input" id="guardCode"
+               maxlength="5" placeholder="·····"
+               oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+               onkeydown="if(event.key==='Enter')submitCode()">
+        <button class="btn btn-blue" onclick="submitCode()" data-i18n="btn_verify">Doğrula</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetLogin()" style="margin-left:4px;"><span class="material-symbols-rounded" style="font-size:1.1em">undo</span> <span data-i18n="btn_back">Geri</span></button>
+      </div>
+      <div class="error-msg" id="guardError"></div>
+    </div>
+  </div>
+
+  <!-- ── ANA EKRAN ─────────────────────────────────── -->
+  <div id="mainSection">
+
+    <div class="update-banner" id="updateBanner" style="display:none; background: var(--blue-dim); border: 1px solid rgba(79,195,247,0.3); border-radius: var(--r); padding: 14px 20px; margin-bottom: 16px; align-items: center; justify-content: space-between;">
+      <div>
+        <div style="font-size: 14px; font-weight: 600; color: var(--blue); margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+          <span class="material-symbols-rounded" style="font-size:1.2em">rocket_launch</span> Yeni Sürüm Çıktı! (<span id="upVersion"></span>)
+        </div>
+        <div style="font-size: 13px; color: var(--text2);" id="upNotes">Daha hızlı ve stabil yeni sürümü indirebilirsiniz.</div>
+      </div>
+      <a href="#" target="_blank" id="upLink" class="btn btn-blue btn-sm" style="text-decoration:none;"><span class="material-symbols-rounded" style="font-size:1.1em">download</span> İndir</a>
+    </div>
+
+    <div class="card">
+      <div class="stats-row" style="justify-content: space-between;">
+        <div class="ctrls" style="margin-bottom: 0;">
+          <button class="btn btn-green btn-sm" id="startBtn" onclick="startFarming()"><span class="material-symbols-rounded" style="font-size:1.1em">play_arrow</span> <span data-i18n="btn_start">Başlat</span></button>
+          <button class="btn btn-red btn-sm" id="stopBtn" onclick="stopFarming()" disabled><span class="material-symbols-rounded" style="font-size:1.1em">stop</span> <span data-i18n="btn_stop">Durdur</span></button>
+          <button class="btn btn-ghost btn-sm" onclick="loadGames()"><span class="material-symbols-rounded" style="font-size:1.1em">refresh</span> <span data-i18n="btn_refresh">Yenile</span></button>
+          <span class="hint" id="gHint" style="margin-left:8px;"></span>
+        </div>
+        <div style="display:flex; gap:20px; text-align:right;">
+          <div class="stat"><span class="stat-val" id="sRemaining"><div class="skeleton skeleton-text" style="width:30px;height:18px;display:inline-block"></div></span><span class="stat-lbl" data-i18n="stat_remaining_cards">Kalan Kart</span></div>
+          <div class="stat"><span class="stat-val" id="sCards"><div class="skeleton skeleton-text" style="width:30px;height:18px;display:inline-block"></div></span><span class="stat-lbl" data-i18n="stat_dropped_session">Kart Düştü</span></div>
+          <div class="stat"><span class="stat-val" id="sGames"><div class="skeleton skeleton-text" style="width:30px;height:18px;display:inline-block"></div></span><span class="stat-lbl" data-i18n="stat_completed_games">Tamamlanan</span></div>
+          <div class="stat"><span class="stat-val" id="sTime"><div class="skeleton skeleton-text" style="width:55px;height:18px;display:inline-block"></div></span><span class="stat-lbl" data-i18n="stat_remaining_time">Aktif Süre</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="now-playing" id="nowPlaying">
+      <div class="pulse"></div>
+      <div>
+        <div id="nowName" style="font-weight:500;font-size:13px;">—</div>
+        <div style="font-size:11px;color:var(--text2);">Kart düşmesi bekleniyor...</div>
+      </div>
+    </div>
+
+    <div class="card" style="display:flex; flex-direction:column; flex:1; min-height:0; padding-top:16px;">
+      <div class="tabs">
+        <div class="tab active" onclick="tab('games')" style="display:flex; align-items:center; gap:6px;"><span class="material-symbols-rounded">sports_esports</span> <span data-i18n="tab_games">Oyunlar</span></div>
+        <div class="tab" onclick="tab('log')" style="display:flex; align-items:center; gap:6px;"><span class="material-symbols-rounded">article</span> <span data-i18n="tab_terminal">Günlük</span></div>
+        <div class="tab" onclick="tab('stats')" style="display:flex; align-items:center; gap:6px;"><span class="material-symbols-rounded">bar_chart</span> <span data-i18n="tab_stats">İstatistikler</span></div>
+        <div class="tab" onclick="tab('schedule')" style="display:flex; align-items:center; gap:6px;"><span class="material-symbols-rounded">schedule</span> <span data-i18n="tab_schedule">Zamanlayıcı</span></div>
+      </div>
+
+      <div class="tab-pane active" id="tabGames">
+        <div class="games-list" id="gamesList">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tabLog">
+        <div class="log-box" id="logBox"></div>
+      </div>
+
+      <div class="tab-pane" id="tabStats" style="overflow-y:auto; padding-right:8px;">
+        <div style="font-size:16px; font-weight:600; margin-bottom:16px; color:var(--text);">Son 7 Günün İstatistikleri</div>
+        <div style="position:relative; height:300px; width:100%;">
+          <canvas id="statsChart"></canvas>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tabSchedule" style="overflow-y:auto; padding-right:8px;">
+        <div style="font-size:16px; font-weight:600; margin-bottom:4px; color:var(--text);" data-i18n="sched_title">Akıllı Zamanlayıcı</div>
+        <div class="setting-desc" style="margin-bottom: 24px;" data-i18n="sched_desc">Belirlediğiniz saatlerde makinenin tamamen otomatik olarak çalışmasını ve durmasını sağlar. Makine açık kaldığı sürece bu saatler arasında kendi kendine farmlar.</div>
+        
+        <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--rs); padding: 16px;">
+          <div class="toggle-row" style="margin-bottom: 20px;">
+            <div>
+              <label style="font-size: 14px; color: var(--text);" data-i18n="sched_status">Zamanlayıcı Durumu</label>
+              <div class="setting-desc">Zamanlayıcıyı açıp kapatın</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setScheduleEnabled" onchange="saveSettings()">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div style="display: flex; gap: 16px;">
+            <div style="flex: 1;">
+              <label style="font-size: 13px; margin-bottom: 8px; display: block; color: var(--green);" data-i18n="sched_start">Başlama Saati</label>
+              <input type="time" id="setScheduleStart" onchange="saveSettings()" style="width:100%; padding:10px 14px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:var(--rs); font-size: 16px;">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 13px; margin-bottom: 8px; display: block; color: var(--amber);" data-i18n="sched_stop">Durdurma Saati</label>
+              <input type="time" id="setScheduleStop" onchange="saveSettings()" style="width:100%; padding:10px 14px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:var(--rs); font-size: 16px;">
+            </div>
+          </div>
+
+          <!-- Yeni scheduler elementleri -->
+          <div style="margin-top: 20px;">
+            <label style="font-size: 13px; margin-bottom: 8px; display: block; color: var(--text);" data-i18n="sched_days">Hangi Günler Tekrarlansın?</label>
+            <div id="scheduleDaysGroup" style="display:flex; gap:8px; flex-wrap:wrap;">
+              <script>
+                const days = [{v:1, l:'Pzt'},{v:2, l:'Sal'},{v:3, l:'Çar'},{v:4, l:'Per'},{v:5, l:'Cum'},{v:6, l:'Cmt'},{v:0, l:'Paz'}];
+                days.forEach(d => {
+                  document.write(`<label style="display:flex; align-items:center; gap:6px; font-size:13px; background:var(--surface); padding:6px 12px; border-radius:var(--rs); border:1px solid var(--border); cursor:pointer;"><input type="checkbox" class="sched-day-cb" value="${d.v}" onchange="saveSettings()"> ${d.l}</label>`);
+                });
+              </script>
+            </div>
+          </div>
+          
+          <div style="margin-top: 20px; display:flex; gap: 16px;">
+            <div style="flex:2;">
+              <label style="font-size: 13px; margin-bottom: 8px; display: block; color: var(--text);">Bittiğinde Gösterilecek Not</label>
+              <label style="font-size: 13px; margin-bottom: 8px; display: block; color: var(--text);" data-i18n="sched_note_label">Bittiğinde Gösterilecek Not</label>
+              <input type="text" id="setScheduleNote" onchange="saveSettings()" placeholder="Örn: Bilgisayarı kapatmayı unutma!" style="width:100%; padding:10px 14px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:var(--rs); font-size: 14px;">
+              <div class="setting-desc" data-i18n="sched_note_desc">Zamanlayıcı bittiğinde ekranda gösterilecek özel bir not.</div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+              <label style="font-size: 13px; margin-bottom: 8px; display: block; color: var(--text);" data-i18n="sched_sound_label">Bitiş Alarmı (Ses)</label>
+              <label class="switch">
+                <input type="checkbox" id="setScheduleSound" onchange="saveSettings()">
+                <span class="slider"></span>
+              </label>
+              <div class="setting-desc" data-i18n="sched_sound_desc">Zamanlayıcı bittiğinde sesli uyarı çal.</div>
+            </div>
+          </div>
+          <!-- Son elementler biter -->
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Kullanım Talimatları Modal -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal" style="width: 540px;">
+      <div class="modal-title">
+        <div><span class="material-symbols-rounded" style="vertical-align:bottom; margin-right:4px;">menu_book</span> <span data-i18n="help_title">Kullanım Mimarisi & Özellikler</span></div>
+        <button class="modal-close" onclick="closeHelp()"><span class="material-symbols-rounded">close</span></button>
+      </div>
+      <div style="max-height: 65vh; overflow-y: auto; padding-right: 8px; font-size: 13px; color: var(--text2); line-height: 1.6;">
+        <h4 style="color:var(--text); margin-bottom: 8px;" data-i18n="help_feat_title">🚀 Öne Çıkan Özellikler</h4>
+        <ul style="margin-bottom: 20px; padding-left: 20px;">
+          <li style="margin-bottom:6px;" data-i18n="help_feat_1"><strong>2 Saat Kuralı:</strong> Oyunlar ilk 2 saat genelde kart düşürmez. Botumuz bu oyunları maksimum 32'li gruplar halinde aynı anda çalıştırarak bu süreyi hızlıca doldurur.</li>
+          <li style="margin-bottom:6px;" data-i18n="help_feat_2"><strong>Solo Mod:</strong> 2 saat barajı aşıldığında bot oyunları teker teker (Solo) çalıştırır. Steam algoritması solo oynanan oyunlarda kartları çok daha hızlı düşürür.</li>
+          <li style="margin-bottom:6px;" data-i18n="help_feat_3"><strong>Akıllı Zamanlayıcı:</strong> Gece yatarken botu otomatik kapatıp sabah tekrar açılmasını sağlayabilirsiniz. Haftalık gün seçimi ve bitiş alarmları da içerir.</li>
+          <li style="margin-bottom:0px;" data-i18n="help_feat_4"><strong>Önbellek Atlatma:</strong> Steam'in dondurulmuş (cache) sayfalarına takılmadan anlık envanter durumunuzu 8 saniyede bir canlandırır.</li>
+        </ul>
+
+        <h4 style="color:var(--text); margin-bottom: 8px;" data-i18n="help_guide_title">📖 Adım Adım Rehber</h4>
+        <div class="setting-row" data-i18n="help_step_1">
+          <strong style="color:var(--blue); font-size: 14px;">Adım 1: Güvenli Giriş</strong><br>
+          Kullanıcı adı ve şifrenizle giriş yapın. Hesabınızda mobil Steam Guard varsa kodunuzu girin. Kod sadece resmi api'ye gönderilir.
+        </div>
+        <div class="setting-row" data-i18n="help_step_2">
+          <strong style="color:var(--blue); font-size: 14px;">Adım 2: Algoritmanın Taraması</strong><br>
+          Giriş başarılı olduğunda bot oyunlarınızı süzerek arayüze yansıtır.
+        </div>
+        <div class="setting-row" data-i18n="help_step_3">
+          <strong style="color:var(--blue); font-size: 14px;">Adım 3: Çalıştırma ve Ayarlar</strong><br>
+          Yeşil "Başlat" butonuna basmanız yeterlidir. Limit sınırını değiştirdiğinizde kırmızı "Durdur" ve tekrar "Başlat" butonuna basmanız gerekir.
+        </div>
+        <div style="background:rgba(239, 83, 80, 0.1); border-left:3px solid var(--red); padding:10px 14px; border-radius:4px; margin-top:20px;" data-i18n="help_warning">
+          <strong style="color:var(--red);">⚠️ Önemli Kural:</strong><br>
+          Steam politikası gereği Ücretsiz (CS:GO vb.) oyunlar oyun içi satın alım yapmadığınız sürece kart kazandırmaz. Kartlar sadece satın alınmış oyunlardan düşer!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ayarlar Modal -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal">
+      <div class="modal-title">
+        <span class="material-symbols-rounded">settings</span> <span data-i18n="settings_title">Gelişmiş Ayarlar</span>
+        <button class="modal-close" onclick="closeSettings()"><span class="material-symbols-rounded">close</span></button>
+      </div>
+      
+      <div class="setting-row">
+        <label data-i18n="set_limit">Aynı Anda Çalışan Oyun Sınırı</label>
+        <div class="setting-desc" data-i18n="set_limit_desc">Steam aynı anda en fazla 32 oyuna izin verir. (Varsayılan: 1)</div>
+        <input type="number" id="setLimit" min="1" max="32" value="1" oninput="if(this.value > 1) document.getElementById('setSolo').checked = false;" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:var(--rs);">
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <label data-i18n="set_solo">Hızlı Kart Düşürme (Solo Mod)</label>
+          <div class="setting-desc" data-i18n="set_solo_desc">Oyunlar 2 saati geçince tek tek çalıştırılarak kartların daha hızlı düşmesi sağlanır.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setSolo" onchange="if(this.checked) document.getElementById('setLimit').value = 1;" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <label data-i18n="set_autologin">Otomatik Giriş (Oturum Kaydet)</label>
+          <div class="setting-desc" data-i18n="set_autologin_desc">Açık olduğunda Steam uygulamanıza şifresiz hızlı giriş yapılır.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setAutoLogin" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <label data-i18n="set_ignore_comp">Rekabetçi Oyunları Yoksay (CS2, Dota 2, vb.)</label>
+          <div class="setting-desc" data-i18n="set_ignore_comp_desc">VAC korumalı rekabetçi oyunları otomatik atlar.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setIgnoreComp" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <label data-i18n="set_status">Steam Çevrimiçi Durumu</label>
+        <div class="setting-desc" data-i18n="set_status_desc">Arkadaşlarınıza oyun oynarken nasıl görüneceğinizi seçin.</div>
+        <select id="setOnline">
+          <option value="1" data-i18n="stat_online">Çevrimiçi</option>
+          <option value="2">Rahatsız etmeyin</option>
+          <option value="3">Uzakta</option>
+          <option value="4">Uyku</option>
+          <option value="7" data-i18n="stat_invisible">Görünmez</option>
+          <option value="0">Çevrimdışı</option>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label data-i18n="set_lang">Dil (Language)</label>
+        <div class="setting-desc" data-i18n="set_lang_desc">Uygulamanın dilini seçin. (Select application language)</div>
+        <select id="setLanguage" onchange="changeLang(this.value)">
+          <option value="tr">Türkçe</option>
+          <option value="en">English</option>
+          <option value="zh">中文 (Chinese)</option>
+          <option value="es">Español</option>
+          <option value="ru">Русский</option>
+          <option value="de">Deutsch</option>
+          <option value="ja">日本語</option>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label data-i18n="set_theme">Tema</label>
+        <div class="setting-desc" data-i18n="set_theme_desc">Uygulamanın renk temasını seçin.</div>
+        <div style="display:flex; gap:10px; margin-top:8px;" id="themePicker">
+          <div class="theme-dot" data-theme="ocean" onclick="setTheme('ocean')" title="Okyanus"><span style="background:#4FC3F7"></span></div>
+          <div class="theme-dot" data-theme="emerald" onclick="setTheme('emerald')" title="Zümrüt"><span style="background:#4CAF50"></span></div>
+          <div class="theme-dot" data-theme="amethyst" onclick="setTheme('amethyst')" title="Ametist"><span style="background:#B388FF"></span></div>
+          <div class="theme-dot" data-theme="sunset" onclick="setTheme('sunset')" title="Gün Batımı"><span style="background:#FF8A65"></span></div>
+          <div class="theme-dot" data-theme="midnight" onclick="setTheme('midnight')" title="Gece"><span style="background:#78909C"></span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px; display:flex; justify-content:flex-start; gap:8px;">
+        <button class="btn btn-blue" onclick="saveSettings()"><span class="material-symbols-rounded" style="font-size:1.1em">save</span> <span data-i18n="btn_save">Kaydet ve Kapat</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Çıkış Modal -->
+  <div class="modal-backdrop" id="quitModal">
+    <div class="modal" style="max-width:350px;">
+      <div class="modal-title">
+        <span data-i18n="modal_quit_title">Uyarı</span>
+        <button class="modal-close" onclick="closeQuitModal()"><span class="material-symbols-rounded">close</span></button>
+      </div>
+      <div style="font-size:14px; margin-bottom:20px; color:var(--text2); line-height:1.5;" data-i18n="modal_quit_desc">
+        Programı kapatmak istiyor musunuz?<br><span style="color:var(--amber);">Kart düşürme işlemi (Farming) durdurulacak.</span>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn btn-ghost" onclick="closeQuitModal()" data-i18n="btn_cancel">İptal</button>
+        <button class="btn btn-red" onclick="confirmQuit()" data-i18n="btn_yes_quit">Evet, Kapat</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+// ── State ──────────────────────────────────────────────────
+let games = [], selectedIds = new Set(), statusTimer = null;
+let appSettings = { limit: 1, solo: true, state: 7, auto_login: true, ignore_comp: true, theme: 'ocean', lang: 'en' };
+let gameOrder = [];     // drag-drop custom order
+let lastCardCount = -1; // for toast detection
+let timerRunning = false, timerInterval = null, timerSeconds = 0;
+let dragSrcId = null;   // drag-drop source
+
+// ── Dil (Language) ──────────────────────────────────────────
+function changeLang(lang) {
+  if (typeof I18N === 'undefined' || !I18N[lang]) return;
+  appSettings.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (I18N[lang][key]) el.innerHTML = I18N[lang][key];
+  });
+}
+function t(key) {
+  const lang = appSettings.lang || 'en';
+  if (I18N[lang] && I18N[lang][key]) return I18N[lang][key];
+  if (I18N['en'] && I18N['en'][key]) return I18N['en'][key];
+  return key;
+}
+
+// ── Tema (Theme) ──────────────────────────────────────────
+function setTheme(thm) {
+  document.documentElement.setAttribute('data-theme', thm);
+  document.querySelectorAll('.theme-dot').forEach(el => el.classList.remove('active'));
+  const activeDot = document.querySelector(`.theme-dot[data-theme="${thm}"]`);
+  if (activeDot) activeDot.classList.add('active');
+  
+  appSettings.theme = thm;
+  localStorage.setItem('scf_settings', JSON.stringify(appSettings));
+}
+
+// ── Ayarlar (Settings) ────────────────────────────
+function openSettings() {
+  document.getElementById('setLimit').value = appSettings.limit;
+  document.getElementById('setSolo').checked = appSettings.solo;
+  document.getElementById('setAutoLogin').checked = appSettings.auto_login !== false;
+  document.getElementById('setIgnoreComp').checked = appSettings.ignore_comp !== false;
+  document.getElementById('setOnline').value = appSettings.state;
+  
+  document.getElementById('setScheduleEnabled').checked = appSettings.schedule_enabled || false;
+  document.getElementById('setScheduleStart').value = appSettings.schedule_start || '';
+  document.getElementById('setScheduleStop').value = appSettings.schedule_stop || '';
+
+  document.getElementById('setLanguage').value = appSettings.lang || 'en';
+  setTheme(appSettings.theme || 'ocean');
+  document.getElementById('settingsModal').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+function openHelp() {
+  document.getElementById('helpModal').classList.add('show');
+}
+function closeHelp() {
+  document.getElementById('helpModal').classList.remove('show');
+}
+async function saveSettings() {
+  const limit = parseInt(document.getElementById('setLimit').value) || 1;
+  const solo = document.getElementById('setSolo').checked;
+  const auto_login = document.getElementById('setAutoLogin').checked;
+  const ignore_comp = document.getElementById('setIgnoreComp').checked;
+  const state = parseInt(document.getElementById('setOnline').value) || 7;
+  
+  const schedule_enabled = document.getElementById('setScheduleEnabled').checked;
+  const schedule_start = document.getElementById('setScheduleStart').value;
+  const schedule_stop = document.getElementById('setScheduleStop').value;
+  const schedule_note = document.getElementById('setScheduleNote').value;
+  const schedule_sound = document.getElementById('setScheduleSound').checked;
+  
+  const schedule_days = Array.from(document.querySelectorAll('.sched-day-cb:checked')).map(cb => parseInt(cb.value));
+  
+  const lang = document.getElementById('setLanguage').value || 'en';
+  appSettings = { ...appSettings, limit, solo, state, auto_login, ignore_comp, schedule_enabled, schedule_start, schedule_stop, schedule_note, schedule_sound, schedule_days, lang };
+  localStorage.setItem('scf_settings', JSON.stringify(appSettings));
+  updateOnlineStatusUI();
+  
+  const res = await api('/api/settings', appSettings);
+  if (res.success) {
+    closeSettings();
+  } else {
+    alert("Ayarlar kaydedilemedi: " + res.error);
+  }
+}
+
+function loadLocalSettings() {
+  try {
+    const saved = localStorage.getItem('scf_settings');
+    if (saved) {
+      appSettings = { ...appSettings, ...JSON.parse(saved) };
+      
+      document.getElementById('setScheduleEnabled').checked = appSettings.schedule_enabled || false;
+      document.getElementById('setScheduleStart').value = appSettings.schedule_start || '';
+      document.getElementById('setScheduleStop').value = appSettings.schedule_stop || '';
+      document.getElementById('setScheduleNote').value = appSettings.schedule_note || '';
+      document.getElementById('setScheduleSound').checked = appSettings.schedule_sound || false;
+      
+      const savedDays = appSettings.schedule_days || [];
+      document.querySelectorAll('.sched-day-cb').forEach(cb => {
+        cb.checked = savedDays.includes(parseInt(cb.value));
+      });
+
+      // Sessizce backend'e senkronize et
+      api('/api/settings', appSettings);
+    }
+  } catch(e) {}
+  setTheme(appSettings.theme || 'ocean');
+  changeLang(appSettings.lang || 'en');
+}
+
+// ── Giriş ─────────────────────────────────────────
+async function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  const st  = document.getElementById('loginStatus');
+  btn.disabled = true;
+  st.textContent = t('js_connecting');
+  hideBanner();
+
+  const res = await api('/api/login', {
+    username: v('username'),
+    password: v('password'),
+  });
+
+  if (res.success) {
+    showMain();
+    loadGames();
+    startPolling();
+    return;
+  }
+
+  // Steam Guard kodu gerekiyor
+  if (res.needs_code) {
+    showGuardBanner(res.code_type, res.error || null);
+    btn.disabled = false;
+    st.textContent = '';
+    return;
+  }
+
+  st.textContent = '❌ ' + (res.error || 'Giriş başarısız');
+  btn.disabled = false;
+}
+
+function showGuardBanner(codeType, errorMsg) {
+  const title = document.getElementById('guardTitle');
+  const desc  = document.getElementById('guardDesc');
+  const err   = document.getElementById('guardError');
+
+  if (codeType === 'totp') {
+    title.textContent = '📱 Steam Guard — Authenticator Kodu';
+    desc.textContent  = 'Steam mobil uygulamanızdaki 5 haneli kodu girin.';
+  } else {
+    title.textContent = '📧 Steam Guard — Email Kodu';
+    desc.textContent  = 'E-postanıza gönderilen 5 haneli kodu girin.';
+  }
+
+  err.textContent = errorMsg || '';
+  document.getElementById('guardCode').value = '';
+  document.getElementById('guardBanner').classList.add('show');
+  setBadge('badge-wait', '● Kod bekleniyor');
+  setTimeout(() => document.getElementById('guardCode').focus(), 100);
+}
+
+function hideBanner() {
+  document.getElementById('guardBanner').classList.remove('show');
+  document.getElementById('guardError').textContent = '';
+}
+
+async function submitCode() {
+  const code = v('guardCode');
+  if (code.length !== 5) {
+    document.getElementById('guardError').textContent = '5 haneli kodu eksiksiz girin.';
+    return;
+  }
+
+  document.getElementById('guardError').textContent = '';
+  document.getElementById('loginBtn').disabled = true;
+
+  const res = await api('/api/submit_code', { code });
+
+  if (res.success) {
+    hideBanner();
+    showMain();
+    loadGames();
+    startPolling();
+    return;
+  }
+
+  // Kod hatalı — banner'ı güncelle
+  if (res.needs_code) {
+    showGuardBanner(res.code_type, res.error);
+  } else {
+    document.getElementById('guardError').textContent = res.error || t('js_err_generic');
+  }
+  document.getElementById('loginBtn').disabled = false;
+}
+
+function resetLogin() {
+  hideBanner();
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginStatus').textContent = '';
+  setBadge('badge-off', t('js_disconnected'));
+  api('/api/logout', {});
+}
+
+async function doLogout() {
+  stopPolling();
+  await api('/api/logout', {});
+  document.getElementById('mainSection').style.display = 'none';
+  document.getElementById('loginSection').style.display = 'block';
+  document.getElementById('profileArea').style.display = 'none';
+  document.getElementById('navName').textContent = '';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginStatus').textContent = '';
+  setBadge('badge-off', t('js_disconnected'));
+}
+
+function showMain() {
+  document.getElementById('loginSection').style.display = 'none';
+  document.getElementById('mainSection').style.display  = 'flex';
+  document.getElementById('profileArea').style.display  = 'flex';
+  setBadge('badge-on', t('js_connected'));
+}
+
+// ── Oyunlar ───────────────────────────────────────
+async function loadGames() {
+  document.getElementById('gHint').textContent = t('js_loading');
+  const res = await api('/api/games');
+  if (!res.success) { document.getElementById('gHint').textContent = res.error; return; }
+  games = res.games;
+  selectedIds = new Set(games.filter(g => g.remaining_drops > 0).map(g => g.app_id));
+  renderGames();
+  document.getElementById('gHint').textContent = `${games.length} ${t('js_game')}`;
+}
+
+function renderGames(activeId) {
+  const list = document.getElementById('gamesList');
+  if (!games.length) {
+    list.innerHTML = `<div class="empty">${t('js_games_empty')}</div>`;
+    return;
+  }
+  
+  // Use custom order if available, else sort by remaining drops
+  const sortedGames = gameOrder.length 
+    ? gameOrder.map(id => games.find(g => g.app_id === id)).filter(Boolean)
+      .concat(games.filter(g => !gameOrder.includes(g.app_id)))
+    : [...games].sort((a,b) => b.remaining_drops - a.remaining_drops);
+
+  list.innerHTML = sortedGames.map(g => {
+    const isChecked = selectedIds.has(g.app_id);
+    const isEmpty = g.remaining_drops <= 0;
+    const dropText = isEmpty ? t('js_completed') : `${g.remaining_drops} ${t('js_card')}`;
+    const dropClass = isEmpty ? "game-drops done" : "game-drops";
+    const cardClass = `game-card ${isEmpty ? 'empty-drops' : ''}`;
+    
+    // Progress bar: calculate how many cards have been collected vs total
+    const totalCards = (g.total_cards || g.remaining_drops || 1);
+    const collected = totalCards - g.remaining_drops;
+    const pct = isEmpty ? 100 : Math.round((collected / totalCards) * 100);
+
+    const checkHtml = !isEmpty 
+      ? `<input type="checkbox" class="game-check" ${isChecked?'checked':''} onchange="toggleSel(${g.app_id},this.checked)" onclick="event.stopPropagation()">` 
+      : ``;
+
+    return `
+      <div id="game-${g.app_id}" class="${cardClass}" draggable="true"
+           ondragstart="onDragStart(event,${g.app_id})" ondragover="onDragOver(event)" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,${g.app_id})" ondragend="onDragEnd(event)"
+           onclick="!${isEmpty} && document.querySelector('input[onchange*=${g.app_id}]').click()">
+        ${checkHtml}
+        <div class="game-img-wrap">
+          <img src="${g.image_url}" class="game-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'184\\' height=\\'69\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%23111\\'/></svg>'">
+          <div onclick="event.stopPropagation(); window.open('https://steamcommunity.com/market/search?appid=753&category_753_Game%5B%5D=tag_app_'+${g.app_id}+'&category_753_item_class%5B%5D=tag_item_class_2', '_blank')" class="market-btn" title="Pazar Fiyatlarına Bak">
+            <span class="material-symbols-rounded" style="font-size:14px; margin:0;">storefront</span>
+          </div>
+        </div>
+        <div class="game-info">
+          <div class="game-name" title="${esc(g.name)}">${esc(g.name)}</div>
+          <div class="${dropClass}">${dropText}</div>
+          <div class="game-progress"><div class="game-progress-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateActiveGames(activeIds = []) {
+  document.querySelectorAll('.game-card.active').forEach(c => c.classList.remove('active'));
+  
+  const list = document.getElementById('gamesList');
+  if (!list || !activeIds.length) return;
+
+  // Append backwards so the first active game ends up at the very top
+  [...activeIds].reverse().forEach(id => {
+    const activeCard = document.getElementById(`game-${id}`);
+    if (activeCard) {
+      activeCard.classList.add('active');
+      list.prepend(activeCard); // Float to the top dynamically
+    }
+  });
+}
+
+function toggleSel(id, on) { on ? selectedIds.add(id) : selectedIds.delete(id); }
+
+// ── Toast Notifications ─────────────────────────────
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const icon = type === 'success' ? 'playing_cards' : 'info';
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="material-symbols-rounded toast-icon">${icon}</span><span>${esc(message)}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4200);
+}
+
+// ── Drag & Drop ─────────────────────────────────────
+function onDragStart(e, appId) {
+  dragSrcId = appId;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function onDragEnter(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+function onDrop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrcId === targetId) return;
+
+  // Build order from current DOM if not yet set
+  if (!gameOrder.length) {
+    gameOrder = [...document.querySelectorAll('.game-card')].map(el => parseInt(el.id.replace('game-','')));
+  }
+  const srcIdx = gameOrder.indexOf(dragSrcId);
+  const tgtIdx = gameOrder.indexOf(targetId);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+  gameOrder.splice(srcIdx, 1);
+  gameOrder.splice(tgtIdx, 0, dragSrcId);
+  renderGames();
+}
+
+// ── Live Timer ──────────────────────────────────────
+function fmtTime(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+function updateTimerDisplay() {
+  document.getElementById('sTime').textContent = fmtTime(timerSeconds);
+}
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    updateTimerDisplay();
+  }, 1000);
+}
+function stopTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+// ── Farming ───────────────────────────────────────
+async function startFarming() {
+  const res = await api('/api/start', {app_ids: selectedIds.size ? [...selectedIds] : null});
+  if (res.success) {
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled  = false;
+    setBadge('badge-farm', t('js_farming'));
+    localStorage.setItem('scf_farming_start', Date.now().toString());
+    timerSeconds = 0;
+    startTimer();
+  }
+}
+
+async function stopFarming() {
+  await api('/api/stop', {});
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled  = true;
+  localStorage.removeItem('scf_farming_start');
+  stopTimer();
+  timerSeconds = 0;
+  updateTimerDisplay();
+}
+
+// ── Status polling ────────────────────────────────
+function startPolling() {
+  if (statusTimer) return;
+  statusTimer = setInterval(pollStatus, 8000);
+}
+function stopPolling() { clearInterval(statusTimer); statusTimer = null; }
+
+async function pollStatus() {
+  const res = await api('/api/status');
+  if (!res.logged_in && !res.is_farming) return;
+
+  if (res.alert) {
+      showToast(res.alert.note || t('js_sched_done'), 'info');
+      if (res.alert.sound) playAlarm();
+      api('/api/clear_alert'); // Serverdan mesajı sil
+      // Arayüzde zamanlayıcı düğmesini kapalı göster (oto kapanma özelliği çalıştıysa)
+      if (res.settings && res.settings.schedule_enabled === false) {
+          appSettings.schedule_enabled = false;
+          document.getElementById('setScheduleEnabled').checked = false;
+          localStorage.setItem('scf_settings', JSON.stringify(appSettings));
+      }
+  }
+
+  document.getElementById('sRemaining').textContent = res.stats?.total_remaining_drops || 0;
+  
+  // Detect new card drops for toast
+  const newCards = res.stats?.cards_dropped || 0;
+  if (newCards > lastCardCount && lastCardCount >= 0) {
+    const diff = newCards - lastCardCount;
+    const gameName = res.current_game?.name || t('js_unknown');
+    showToast(`${gameName} — ${diff} ${t('js_cards_dropped')}`, 'success');
+  }
+  lastCardCount = newCards;
+  document.getElementById('sCards').textContent = newCards;
+  document.getElementById('sGames').textContent = res.stats?.games_completed || 0;
+
+  if (res.update) {
+    document.getElementById('updateBanner').style.display = 'flex';
+    document.getElementById('upVersion').textContent = res.update.version;
+    if (res.update.notes) document.getElementById('upNotes').textContent = res.update.notes;
+    document.getElementById('upLink').href = res.update.url;
+  } else {
+    document.getElementById('updateBanner').style.display = 'none';
+  }
+
+  const np = document.getElementById('nowPlaying');
+  if (res.current_games && res.current_games.length > 0) {
+    const totalRemaining = res.current_games.reduce((sum, g) => sum + g.remaining_drops, 0);
+    const names = res.current_games.map(g => g.name).join(', ');
+    const isMultiple = res.current_games.length > 1;
+    
+    document.getElementById('nowName').textContent = isMultiple 
+      ? `${res.current_games.length} ${t('js_playing_multi').replace('{k}', totalRemaining)}`
+      : `${names} — ${totalRemaining} ${t('js_playing_single')}`;
+      
+    np.classList.add('show');
+    updateActiveGames(res.current_games.map(g => g.app_id));
+  } else {
+    np.classList.remove('show');
+    updateActiveGames([]);
+  }
+
+  if (res.is_farming) {
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled  = false;
+    setBadge('badge-farm', t('js_farming'));
+    // Sync timer with session start
+    const savedStart = localStorage.getItem('scf_farming_start');
+    if (savedStart) {
+      timerSeconds = Math.floor((Date.now() - parseInt(savedStart, 10)) / 1000);
+      updateTimerDisplay();
+    } else {
+      localStorage.setItem('scf_farming_start', Date.now().toString());
+      timerSeconds = 0;
+    }
+    if (!timerRunning) startTimer();
+  } else {
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled  = true;
+    localStorage.removeItem('scf_farming_start');
+    if (res.logged_in) setBadge('badge-on', t('js_connected'));
+    if (timerRunning) { stopTimer(); timerSeconds = 0; updateTimerDisplay(); }
+  }
+
+  if (res.profile_name) {
+    document.getElementById('navName').textContent = res.profile_name;
+    updateOnlineStatusUI();
+  }
+  if (res.profile_avatar) {
+    const avatar = document.getElementById('navAvatar');
+    avatar.src = res.profile_avatar;
+    avatar.classList.remove('skeleton');
+  }
+
+  renderLog(res.log || []);
+}
+
+function renderLog(entries) {
+  const box = document.getElementById('logBox');
+  const atBot = box.scrollHeight - box.scrollTop <= box.clientHeight + 10;
+  box.innerHTML = entries.map(e =>
+    `<div class="log-line"><span class="log-t">${e.time}</span><span class="log-m ${e.level}">${esc(e.msg)}</span></div>`
+  ).join('');
+  if (atBot) box.scrollTop = box.scrollHeight;
+}
+
+// ── Status UI ──────────────────────────────────────
+function updateOnlineStatusUI() {
+  const statusEl = document.getElementById('navStatus');
+  if (!statusEl) return;
+  statusEl.style.display = 'block';
+
+  const stateMap = {
+    1: { text: "Çevrimiçi", color: "var(--blue)" },
+    2: { text: "Rahatsız etmeyin", color: "var(--red)" },
+    3: { text: "Uzakta", color: "var(--amber)" },
+    4: { text: "Uyku", color: "var(--text3)" },
+    7: { text: "Görünmez", color: "var(--text3)" },
+    0: { text: "Çevrimdışı", color: "var(--text3)" }
+  };
+
+  const st = stateMap[appSettings.state] || stateMap[1];
+  statusEl.textContent = st.text;
+  statusEl.style.color = st.color;
+}
+
+// ── Tabs ──────────────────────────────────────────
+function tab(name) {
+  const names = ['games','log','stats','schedule'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i]===name));
+  document.querySelectorAll('.tab-pane').forEach((p,i) => p.classList.toggle('active', names[i]===name));
+  if (name==='log') { const b=document.getElementById('logBox'); b.scrollTop=b.scrollHeight; }
+  if (name==='stats') { renderStatsChart(); }
+}
+
+let chartInst = null;
+async function renderStatsChart() {
+  const res = await api('/api/history');
+  if (!res.success) return;
+  const hist = res.history || {};
+
+  // Son 7 gün için tarih dizisi oluştur
+  const labels = [];
+  const data = [];
+  const today = new Date();
+  
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    // Etiket için daha okunaklı format
+    const labelStr = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+    
+    labels.push(labelStr);
+    data.push(hist[dateStr] || 0);
+  }
+
+  const ctx = document.getElementById('statsChart');
+  if (chartInst) chartInst.destroy();
+
+  const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim() || '#4FC3F7';
+  
+  chartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Düşen Kart Sayısı',
+        data: data,
+        backgroundColor: primaryColor,
+        borderRadius: 4,
+        barThickness: 24
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0, color: '#8B90A8' },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          border: { display: false }
+        },
+        x: {
+          ticks: { color: '#8B90A8' },
+          grid: { display: false },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+// ── Kapat ─────────────────────────────────────────
+function quitApp() {
+  document.getElementById('quitModal').classList.add('show');
+}
+function closeQuitModal() {
+  document.getElementById('quitModal').classList.remove('show');
+}
+async function confirmQuit() {
+  closeQuitModal();
+  try { await api('/api/quit', {}); } catch(e) {}
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#8B90A8;font-size:15px;">Uygulama kapatıldı. Bu sekmeyi kapatabilirsiniz.</div>';
+}
+
+// ── Helpers ───────────────────────────────────────
+function playAlarm() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const playNote = (freq, time, dur) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(1, time + 0.05);
+      gain.gain.linearRampToValueAtTime(0, time + dur);
+      osc.start(time); osc.stop(time + dur);
+    };
+    const t = ctx.currentTime;
+    playNote(523.25, t, 0.2); 
+    playNote(659.25, t+0.2, 0.2); 
+    playNote(783.99, t+0.4, 0.4);
+    playNote(1046.50, t+0.8, 0.6);
+  } catch(e) {}
+}
+
+async function api(url, body) {
+  try {
+    const opts = {headers:{'Content-Type':'application/json'}};
+    if (body !== undefined) { opts.method='POST'; opts.body=JSON.stringify(body); }
+    return await (await fetch(url, opts)).json();
+  } catch(e) { return {success:false, error:e.message}; }
+}
+function v(id) { return document.getElementById(id).value.trim(); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function setBadge(cls, txt) {
+  const el = document.getElementById('badge');
+  el.className = 'badge ' + cls;
+  el.textContent = txt;
+}
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('profileArea');
+  const dropdown = menu ? menu.querySelector('.profile-dropdown') : null;
+  if (!menu || !dropdown) return;
+  
+  if (menu.contains(e.target)) {
+    dropdown.classList.toggle('show');
+  } else {
+    dropdown.classList.remove('show');
+  }
+});
+
+window.addEventListener('DOMContentLoaded', async () => {
+  loadLocalSettings();
+  const res = await api('/api/status');
+  if (res.logged_in) {
+    showMain();
+    if (res.is_farming) {
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled  = false;
+      setBadge('badge-farm', '● Farming');
+    }
+    await loadGames();
+    await pollStatus();
+    startPolling();
+  } else if (res.needs_code) {
+    showGuardBanner(res.code_type, null);
+  } else if (appSettings.auto_login !== false) {
+    document.getElementById('loginBtn').disabled = true;
+    document.getElementById('loginStatus').textContent = 'Oturum aranıyor...';
+    
+    const autoRes = await api('/api/auto_login', {});
+    if (autoRes.success) {
+      showMain();
+      await loadGames();
+      await pollStatus();
+      startPolling();
+    } else {
+      document.getElementById('loginBtn').disabled = false;
+      document.getElementById('loginStatus').textContent = '';
+    }
+  }
+});
+</script>
+</body>
+</html>
