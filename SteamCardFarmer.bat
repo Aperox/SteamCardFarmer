@@ -56,6 +56,16 @@ if exist "%TEMP%\nodejs_install.msi" (
 )
 
 :StartApp
+if not exist "node_modules\" (
+    color 0E
+    echo.
+    echo ===================================================
+    echo ILK KURULUM: Gerekli kutuphaneler yukleniyor...
+    echo Lutfen bitene kadar bekleyin...
+    echo ===================================================
+    call npm install
+)
+
 color 0A
 echo ===================================================
 echo Steam Card Farmer Baslatiliyor...
