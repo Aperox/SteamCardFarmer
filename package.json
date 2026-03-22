@@ -1,6 +1,6 @@
 {
   "name": "steam-card-farmer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Steam Card Farmer background service",
   "main": "server.js",
   "bin": "server.js",

@@ -388,7 +388,7 @@ class SteamCardFarmer {
         // We only actively farm games that have > 0 drops
         let farmable = uniqueGames.filter(g => g.remaining_drops > 0);
         
-        if (this.config.ignore_comp !== false) {
+        if (this.settings.ignore_comp !== false) {
             const compIds = [730, 570, 440, 578080, 252490, 271590, 1172470];
             const beforeCount = farmable.length;
             farmable = farmable.filter(g => !compIds.includes(g.app_id));
